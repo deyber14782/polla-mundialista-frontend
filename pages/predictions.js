@@ -159,9 +159,7 @@ function renderContent() {
 // ── GRUPOS CON TABLAS ─────────────────────────────────────────────
 
 function renderGroupsWithTables(container) {
-  const groupMatches = currentPhase === "all"
-    ? allMatches.filter(m => m.phase === "group")
-    : allMatches.filter(m => m.phase === "group");
+  const groupMatches = allMatches.filter(m => m.phase === "group");
 
   // Agrupar partidos por grupo
   const grouped = {};
@@ -244,7 +242,6 @@ function calculateGroupTable(groupName, matches) {
           code, name: data.name, logo: data.logo,
           pts: 0, pj: 0, pg: 0, pe: 0, pp: 0,
           gf: 0, gc: 0, dg: 0,
-          // Para desempate directo
           h2h: {},
         };
       }
@@ -263,7 +260,6 @@ function calculateGroupTable(groupName, matches) {
     teams[awayCode].gf += ag;
     teams[awayCode].gc += hg;
 
-    // Resultado directo para desempate
     if (!teams[homeCode].h2h[awayCode]) teams[homeCode].h2h[awayCode] = { pts: 0, dg: 0, gf: 0 };
     if (!teams[awayCode].h2h[homeCode]) teams[awayCode].h2h[homeCode] = { pts: 0, dg: 0, gf: 0 };
 
@@ -286,28 +282,20 @@ function calculateGroupTable(groupName, matches) {
     teams[awayCode].h2h[homeCode].gf += ag;
   });
 
-  // Calcular diferencia de goles
   Object.values(teams).forEach(t => { t.dg = t.gf - t.gc; });
 
   const teamsList = Object.values(teams);
 
-  // Ordenar con criterios de desempate FIFA
   return teamsList.sort((a, b) => {
-    // 1. Puntos
     if (b.pts !== a.pts) return b.pts - a.pts;
-    // 2. Diferencia de goles
     if (b.dg !== a.dg) return b.dg - a.dg;
-    // 3. Goles a favor
     if (b.gf !== a.gf) return b.gf - a.gf;
-    // 4. Resultado directo (puntos)
     const h2h_pts_a = a.h2h[b.code]?.pts || 0;
     const h2h_pts_b = b.h2h[a.code]?.pts || 0;
     if (h2h_pts_b !== h2h_pts_a) return h2h_pts_b - h2h_pts_a;
-    // 5. Resultado directo (diferencia de goles)
     const h2h_dg_a = a.h2h[b.code]?.dg || 0;
     const h2h_dg_b = b.h2h[a.code]?.dg || 0;
     if (h2h_dg_b !== h2h_dg_a) return h2h_dg_b - h2h_dg_a;
-    // 6. Resultado directo (goles a favor)
     const h2h_gf_a = a.h2h[b.code]?.gf || 0;
     const h2h_gf_b = b.h2h[a.code]?.gf || 0;
     return h2h_gf_b - h2h_gf_a;
@@ -345,7 +333,6 @@ function renderKnockoutMatches(container) {
     return;
   }
 
-  // Agrupar por fecha
   const grouped = {};
   filtered.forEach(m => {
     const date = new Date(m.kickoff).toLocaleDateString("es-CO", {
@@ -380,7 +367,6 @@ function renderMatchCard(match) {
   const hasPred = pred !== undefined;
   const penaltyWinner = pred?.penalty_winner || "";
 
-  // Verificar si hay empate en eliminatoria
   const isDraw = homeVal !== "" && awayVal !== "" &&
     parseInt(homeVal) === parseInt(awayVal);
   const needsPenalty = isKnockout && isDraw && !isLocked && !knockoutLocked;
@@ -420,7 +406,6 @@ function renderMatchCard(match) {
        </div>`
     : "";
 
-  // Selector de penales
   const penaltySelector = needsPenalty ? `
     <div class="penalty-selector" id="penalty-${match.fixture_id}">
       <span class="penalty-label">Ganador en penales:</span>
@@ -495,32 +480,35 @@ function renderMatchCard(match) {
 // ── INPUT LISTENERS ───────────────────────────────────────────────
 
 function attachInputListeners() {
-  // Listeners para botones de penales
+  // ✅ FIX 1: conectar listeners de score a handleScoreChange
+  document.querySelectorAll(".score-input").forEach(input => {
+    input.addEventListener("input", handleScoreChange);
+    input.addEventListener("change", updateGroupTables);
+  });
+
+  // ✅ FIX 2: renombrado saveBtn para no colisionar con variable btn del forEach
   document.querySelectorAll(".penalty-btn").forEach(btn => {
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", () => {
       const fixtureId = parseInt(btn.dataset.fixture);
       const winner = btn.dataset.winner;
 
-      // Actualizar UI
       document.querySelectorAll(
         `.penalty-btn[data-fixture="${fixtureId}"]`
       ).forEach(b => b.classList.remove("selected"));
       btn.classList.add("selected");
 
-      // Guardar en pendingSaves
       if (!pendingSaves[fixtureId]) pendingSaves[fixtureId] = {};
       pendingSaves[fixtureId].penalty_winner = winner;
 
-      // Actualizar predicción local
       if (myPredictions[fixtureId]) {
         myPredictions[fixtureId].penalty_winner = winner;
       }
 
-      const btn = document.getElementById("save-all-btn");
+      const saveBtn = document.getElementById("save-all-btn");
       const status = document.getElementById("save-status");
-      if (btn) {
-        btn.style.display = "flex";
-        btn.onclick = saveAllPending;
+      if (saveBtn) {
+        saveBtn.style.display = "flex";
+        saveBtn.onclick = saveAllPending;
       }
       if (status) status.textContent = "Cambios sin guardar...";
     });
@@ -528,7 +516,6 @@ function attachInputListeners() {
 }
 
 function updateGroupTables() {
-  // Re-renderizar solo las tablas sin tocar los inputs
   GROUPS.forEach(group => {
     const tableWrap = document.querySelector(
       `#section-${group.replace(" ", "-")} .group-table-wrap`
@@ -538,7 +525,6 @@ function updateGroupTables() {
     const groupMatches = allMatches.filter(m => m.group === group);
     if (!groupMatches.length) return;
 
-    // Leer valores actuales de los inputs para predicciones temporales
     groupMatches.forEach(match => {
       const homeInput = document.querySelector(
         `.score-input[data-fixture="${match.fixture_id}"][data-side="home"]`
@@ -573,13 +559,16 @@ function handleScoreChange(e) {
   if (!pendingSaves[fixtureId]) pendingSaves[fixtureId] = {};
   pendingSaves[fixtureId][side] = isNaN(value) ? 0 : value;
 
-  const btn = document.getElementById("save-all-btn");
+  const saveBtn = document.getElementById("save-all-btn");
   const status = document.getElementById("save-status");
-  if (btn) {
-    btn.style.display = "flex";
-    btn.onclick = saveAllPending;
+  if (saveBtn) {
+    saveBtn.style.display = "flex";
+    saveBtn.onclick = saveAllPending;
   }
   if (status) status.textContent = "Cambios sin guardar...";
+
+  // ✅ actualizar tabla en tiempo real mientras escribe
+  updateGroupTables();
 }
 
 async function saveAllPending() {
@@ -638,15 +627,14 @@ async function saveAllPending() {
       showToast(`${result.skipped} partidos omitidos (ya iniciaron)`, "warning");
     }
 
-    // Recargar datos frescos y re-renderizar
     await loadPredictionsData();
 
   } catch (err) {
     showToast("Error guardando predicciones", "error");
     document.getElementById("save-status").textContent = "Error al guardar";
   } finally {
-    const btn = document.getElementById("save-all-btn");
-    if (btn) btn.disabled = false;
+    const saveBtn = document.getElementById("save-all-btn");
+    if (saveBtn) saveBtn.disabled = false;
   }
 }
 
@@ -750,15 +738,15 @@ function injectPredictionsStyles() {
       align-items: start;
     }
 
-        /* ── Tabla de posiciones del grupo ── */
-        .group-standing-card {
-          background: var(--white);
-          border-radius: var(--radius);
-          box-shadow: var(--shadow);
-          overflow: hidden;
-          position: sticky;
-          top: 80px;
-        }
+    /* ── Tabla de posiciones del grupo ── */
+    .group-standing-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: sticky;
+      top: 80px;
+    }
 
     .group-standing-header {
       display: grid;
