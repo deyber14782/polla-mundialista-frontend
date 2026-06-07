@@ -378,6 +378,12 @@ function renderMatchCard(match) {
   const homeVal = pred !== undefined ? pred.predicted_home : "";
   const awayVal = pred !== undefined ? pred.predicted_away : "";
   const hasPred = pred !== undefined;
+  const penaltyWinner = pred?.penalty_winner || "";
+
+  // Verificar si hay empate en eliminatoria
+  const isDraw = homeVal !== "" && awayVal !== "" &&
+    parseInt(homeVal) === parseInt(awayVal);
+  const needsPenalty = isKnockout && isDraw && !isLocked && !knockoutLocked;
 
   let homeTeam = match.home_team;
   let awayTeam = match.away_team;
@@ -396,9 +402,11 @@ function renderMatchCard(match) {
       ? `<span class="badge badge-locked"><i class="fas fa-lock"></i> Completa grupos primero</span>`
       : effectiveLocked
         ? `<span class="badge badge-locked"><i class="fas fa-lock"></i> Cerrado</span>`
-        : hasPred
-          ? `<span class="badge badge-saved"><i class="fas fa-check"></i> Guardado</span>`
-          : `<span class="badge badge-empty"><i class="fas fa-pencil-alt"></i> Sin predecir</span>`;
+        : needsPenalty
+          ? `<span class="badge badge-penalty"><i class="fas fa-circle-dot"></i> Define ganador en penales</span>`
+          : hasPred
+            ? `<span class="badge badge-saved"><i class="fas fa-check"></i> Guardado</span>`
+            : `<span class="badge badge-empty"><i class="fas fa-pencil-alt"></i> Sin predecir</span>`;
 
   const pointsDisplay = pred?.points !== null && pred?.points !== undefined
     ? `<div class="pred-points ${pred.points > 0 ? "pts-good" : "pts-zero"}">
@@ -412,11 +420,29 @@ function renderMatchCard(match) {
        </div>`
     : "";
 
+  // Selector de penales
+  const penaltySelector = needsPenalty ? `
+    <div class="penalty-selector" id="penalty-${match.fixture_id}">
+      <span class="penalty-label">Ganador en penales:</span>
+      <div class="penalty-options">
+        <button class="penalty-btn ${penaltyWinner === 'home' ? 'selected' : ''}"
+          data-fixture="${match.fixture_id}" data-winner="home">
+          ${homeTeam.name}
+        </button>
+        <button class="penalty-btn ${penaltyWinner === 'away' ? 'selected' : ''}"
+          data-fixture="${match.fixture_id}" data-winner="away">
+          ${awayTeam.name}
+        </button>
+      </div>
+    </div>
+  ` : "";
+
   return `
     <div class="match-pred-card
       ${effectiveLocked ? "locked" : ""}
-      ${hasPred ? "has-pred" : ""}
-      ${knockoutLocked ? "knockout-locked" : ""}">
+      ${hasPred && !needsPenalty ? "has-pred" : ""}
+      ${knockoutLocked ? "knockout-locked" : ""}
+      ${needsPenalty ? "needs-penalty" : ""}">
 
       <div class="mpc-top">
         ${statusBadge}
@@ -460,6 +486,8 @@ function renderMatchCard(match) {
           <span class="mpc-name">${awayTeam.name}</span>
         </div>
       </div>
+
+      ${penaltySelector}
     </div>
   `;
 }
@@ -467,19 +495,29 @@ function renderMatchCard(match) {
 // ── INPUT LISTENERS ───────────────────────────────────────────────
 
 function attachInputListeners() {
-  document.querySelectorAll(".score-input").forEach(input => {
-    input.addEventListener("input", (e) => {
-      e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 2);
-      // Actualizar tabla en tiempo real
-      updateGroupTables();
-    });
-    input.addEventListener("change", handleScoreChange);
-    input.addEventListener("wheel", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    }, { passive: false });
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
+  // Listeners para botones de penales
+  document.querySelectorAll(".penalty-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const fixtureId = parseInt(btn.dataset.fixture);
+      const winner = btn.dataset.winner;
+
+      // Actualizar UI
+      document.querySelectorAll(
+        `.penalty-btn[data-fixture="${fixtureId}"]`
+      ).forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+
+      // Guardar en pendingSaves
+      if (!pendingSaves[fixtureId]) pendingSaves[fixtureId] = {};
+      pendingSaves[fixtureId].penalty_winner = winner;
+
+      // Actualizar predicción local
+      if (myPredictions[fixtureId]) {
+        myPredictions[fixtureId].penalty_winner = winner;
+      }
+
+      document.getElementById("save-all-btn").style.display = "flex";
+      document.getElementById("save-status").textContent = "Cambios sin guardar...";
     });
   });
 }
@@ -560,6 +598,7 @@ async function saveAllPending() {
       fixture_id: parseInt(id),
       predicted_home: scores.home,
       predicted_away: scores.away,
+      penalty_winner: scores.penalty_winner || null,
     }));
 
   if (!batch.length) {
@@ -698,46 +737,46 @@ function injectPredictionsStyles() {
       gap: 0.5rem;
     }
 
-.group-layout {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 1.25rem;
-  align-items: start;
-}
-
-    /* ── Tabla de posiciones del grupo ── */
-    .group-standing-card {
-      background: var(--white);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      position: sticky;
-      top: 80px;
+    .group-layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 1.25rem;
+      align-items: start;
     }
 
-.group-standing-header {
-  display: grid;
-  grid-template-columns: 20px 1fr 28px 32px 32px 28px;
-  padding: 0.5rem 0.6rem;
-  background: var(--navy);
-  color: var(--white);
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  gap: 0.2rem;
-}
+        /* ── Tabla de posiciones del grupo ── */
+        .group-standing-card {
+          background: var(--white);
+          border-radius: var(--radius);
+          box-shadow: var(--shadow);
+          overflow: hidden;
+          position: sticky;
+          top: 80px;
+        }
 
-.group-standing-row {
-  display: grid;
-  grid-template-columns: 20px 1fr 28px 32px 32px 28px;
-  padding: 0.5rem 0.6rem;
-  align-items: center;
-  gap: 0.2rem;
-  border-bottom: 1px solid var(--gray-mid);
-  font-size: 0.78rem;
-  transition: var(--transition);
-}
+    .group-standing-header {
+      display: grid;
+      grid-template-columns: 20px 1fr 28px 32px 32px 28px;
+      padding: 0.5rem 0.6rem;
+      background: var(--navy);
+      color: var(--white);
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      gap: 0.2rem;
+    }
+
+    .group-standing-row {
+      display: grid;
+      grid-template-columns: 20px 1fr 28px 32px 32px 28px;
+      padding: 0.5rem 0.6rem;
+      align-items: center;
+      gap: 0.2rem;
+      border-bottom: 1px solid var(--gray-mid);
+      font-size: 0.78rem;
+      transition: var(--transition);
+    }
 
     .group-standing-row:last-of-type { border-bottom: none; }
     .group-standing-row:hover { background: var(--gray-light); }
@@ -778,13 +817,13 @@ function injectPredictionsStyles() {
       flex-shrink: 0;
     }
 
-.standing-team span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.75rem;
-  max-width: 80px;
-}
+    .standing-team span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.75rem;
+      max-width: 80px;
+    }
 
     .standing-pts {
       font-weight: 800;
@@ -996,6 +1035,61 @@ function injectPredictionsStyles() {
       max-width: 400px;
       margin-left: auto;
       margin-right: auto;
+    }
+
+    .badge-penalty {
+      background: rgba(245,158,11,0.15);
+      color: #F59E0B;
+      animation: pulse 1.5s infinite;
+    }
+
+    .match-pred-card.needs-penalty {
+      border: 2px solid rgba(245,158,11,0.4);
+    }
+
+    .penalty-selector {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--gray-mid);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .penalty-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #F59E0B;
+      white-space: nowrap;
+    }
+
+    .penalty-options {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .penalty-btn {
+      padding: 0.35rem 0.85rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 2px solid var(--gray-mid);
+      background: var(--white);
+      color: var(--text);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .penalty-btn:hover {
+      border-color: #F59E0B;
+      color: #F59E0B;
+    }
+
+    .penalty-btn.selected {
+      background: #F59E0B;
+      border-color: #F59E0B;
+      color: var(--white);
     }
 
     /* ── Responsive ── */
