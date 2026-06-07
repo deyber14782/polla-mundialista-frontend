@@ -1,6 +1,6 @@
 import { getToken } from "./firebase.js";
 
-const BASE_URL = "https://polla-mundialista-production-b653.up.railway.app";; // en producción cambiar por la URL del backend
+const BASE_URL = "https://polla-mundialista-production-b653.up.railway.app"; // en producción cambiar por la URL del backend
 
 async function request(method, endpoint, body = null) {
     const token = await getToken(true);
@@ -40,9 +40,9 @@ export const usersAPI = {
 
 // ── Matches ────────────────────────────────────────
 export const matchesAPI = {
-  getAll:     (phase = null) => request("GET", `/matches${phase ? `?phase=${phase}` : ""}`),
-  getLive:    () => request("GET", "/matches/live"),
-  getOne:     (fixtureId) => request("GET", `/matches/${fixtureId}`),
+  getAll:       (phase = null) => request("GET", `/matches/${phase ? `?phase=${phase}` : ""}`),
+  getLive:      () => request("GET", "/matches/live"),
+  getOne:       (fixtureId) => request("GET", `/matches/${fixtureId}`),
   getMyBracket: () => request("GET", "/matches/bracket/me"),
 };
 // ── Predictions ────────────────────────────────────

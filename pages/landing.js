@@ -1,12 +1,12 @@
 export function renderLanding() {
-    // Reemplazar todo el body para la landing
-    document.getElementById("navbar").classList.add("hidden");
+  // Reemplazar todo el body para la landing
+  document.getElementById("navbar").classList.add("hidden");
 
-    const app = document.getElementById("app");
-    app.style.maxWidth = "none";
-    app.style.padding = "0";
+  const app = document.getElementById("app");
+  app.style.maxWidth = "none";
+  app.style.padding = "0";
 
-    app.innerHTML = `
+  app.innerHTML = `
 
     <!-- ── HERO ─────────────────────────────────────────────── -->
     <section class="hero">
@@ -30,7 +30,9 @@ export function renderLanding() {
         </div>
       </div>
       <div class="hero-visual">
-        <div class="hero-ball"></div>
+        <div class="hero-ball">
+          <img src="/assets/logo.png" alt="Python Cup 2026" class="hero-logo-img" />
+        </div>
         <div class="hero-stats">
         <div class="hero-stat">
             <span class="hero-stat-num">106</span>
@@ -313,13 +315,10 @@ export function renderLanding() {
     <footer class="landing-footer">
       <div class="footer-inner">
         <div class="footer-brand">
-          <span class="footer-logo">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--turq)">
-              <circle cx="12" cy="12" r="10"/>
-              <path fill="var(--navy)" d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 3.5l2.5 3.5H9.5L12 5.5zm-6 4h3l-1.5 4.5L6 9.5zm10 0l-1.5 4.5L13 9.5h3zm-7.5 5h7l-3.5 4-3.5-4z"/>
-            </svg>
-          </span>
-          <span>Polla Mundialista 2026</span>
+        <span class="footer-logo">
+          <img src="/assets/logo.png" alt="Python Cup 2026" style="height:28px;object-fit:contain;" />
+        </span>
+        <span>Python Cup 2026</span>
         </div>
         <p class="footer-copy">Desarrollado por estudiantes de Algorithmics · 2026</p>
       </div>
@@ -327,31 +326,31 @@ export function renderLanding() {
 
   `;
 
-    injectLandingStyles();
-    initScrollAnimations();
+  injectLandingStyles();
+  initScrollAnimations();
 }
 
 function renderTeamCards() {
-    // Reemplaza los nombres y fotos con los datos reales de tus 14 estudiantes
-    // Las fotos deben estar en frontend/assets/team/
-    const students = [
-        { name: "Samuel Ospina", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 1.png" },
-        { name: "Joel Camargo", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 2.png" },
-        { name: "Samara Moreno", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 3.png" },
-        { name: "Zahir Palacio", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 4.png" },
-        { name: "Juan Sebastián Ramírez", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 5.png" },
-        { name: "Laura Gutiérrez", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 6.png" },
-        { name: "Sebastián Cañón", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 7.png" },
-        { name: "Daniel Niño", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 8.png" },
-        { name: "Andrés Martínez", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 9.png" },
-        { name: "Camilo Amaya", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 10.png" },
-        { name: "Diego Moreno", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 11.png" },
-        { name: "Ángel Ramírez", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 12.png" },
-        { name: "Santiago Yepes", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 13.png" },
-        { name: "Ian Núñez", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 14.png" },
-    ];
+  // Reemplaza los nombres y fotos con los datos reales de tus 14 estudiantes
+  // Las fotos deben estar en frontend/assets/team/
+  const students = [
+    { name: "Samuel Ospina", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 1.png" },
+    { name: "Joel Camargo", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 2.png" },
+    { name: "Samara Moreno", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 3.png" },
+    { name: "Zahir Palacio", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 4.png" },
+    { name: "Juan Sebastián Ramírez", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 5.png" },
+    { name: "Laura Gutiérrez", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 6.png" },
+    { name: "Sebastián Cañón", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 7.png" },
+    { name: "Daniel Niño", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 8.png" },
+    { name: "Andrés Martínez", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 9.png" },
+    { name: "Camilo Amaya", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 10.png" },
+    { name: "Diego Moreno", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 11.png" },
+    { name: "Ángel Ramírez", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 12.png" },
+    { name: "Santiago Yepes", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 13.png" },
+    { name: "Ian Núñez", role: "Full Stack Developer", photo: "assets/team/Panini fifa - 14.png" },
+  ];
 
-    return students.map(s => `
+  return students.map(s => `
     <div class="panini-card">
       <div class="panini-photo-wrap">
         <img
@@ -376,27 +375,27 @@ function renderTeamCards() {
 }
 
 function initScrollAnimations() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add("visible");
-            }
-        });
-    }, { threshold: 0.1 });
-
-    document.querySelectorAll(
-        ".step-card, .score-row, .panini-card"
-    ).forEach(el => {
-        el.classList.add("animate-on-scroll");
-        observer.observe(el);
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("visible");
+      }
     });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll(
+    ".step-card, .score-row, .panini-card"
+  ).forEach(el => {
+    el.classList.add("animate-on-scroll");
+    observer.observe(el);
+  });
 }
 
 function injectLandingStyles() {
-    if (document.getElementById("landing-styles")) return;
-    const style = document.createElement("style");
-    style.id = "landing-styles";
-    style.textContent = `
+  if (document.getElementById("landing-styles")) return;
+  const style = document.createElement("style");
+  style.id = "landing-styles";
+  style.textContent = `
     :root {
       --landing-muted: rgba(255,255,255,0.6);
     }
@@ -516,34 +515,18 @@ function injectLandingStyles() {
     }
 
     .hero-ball {
-      width: 220px;
-      height: 220px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%,
-        rgba(53,198,244,0.2) 0%,
-        rgba(53,198,244,0.05) 40%,
-        transparent 70%
-      );
-      border: 1px solid rgba(53,198,244,0.2);
-      position: relative;
-    }
-
-    .hero-ball::before {
-      content: "";
-      position: absolute;
-      inset: 20px;
-      border-radius: 50%;
-      border: 1px solid rgba(53,198,244,0.15);
-    }
-
-    .hero-ball::after {
-      content: "⚽";
-      position: absolute;
-      inset: 0;
+      width: 260px;
+      height: 260px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 5rem;
+    }
+
+    .hero-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 32px rgba(53,198,244,0.3));
     }
 
     .hero-stats {
@@ -1000,5 +983,5 @@ function injectLandingStyles() {
       .score-row   { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
     }
   `;
-    document.head.appendChild(style);
+  document.head.appendChild(style);
 }

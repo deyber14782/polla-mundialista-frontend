@@ -71,8 +71,8 @@ function renderNavbar(activePath) {
         navbar.innerHTML = `
           <div class="navbar-inner">
             <div class="navbar-brand" onclick="window.navigate('/dashboard')">
-              <span class="brand-icon">⚽</span>
-              <span class="brand-name">Polla Mundialista</span>
+              <img src="assets/logo.png" alt="Python Cup 2026" style="height:36px;object-fit:contain;" />
+              <span class="brand-name">Python Cup 2026</span>
             </div>
             <ul class="navbar-links">
               <li>
