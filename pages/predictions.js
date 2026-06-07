@@ -516,8 +516,13 @@ function attachInputListeners() {
         myPredictions[fixtureId].penalty_winner = winner;
       }
 
-      document.getElementById("save-all-btn").style.display = "flex";
-      document.getElementById("save-status").textContent = "Cambios sin guardar...";
+      const btn = document.getElementById("save-all-btn");
+      const status = document.getElementById("save-status");
+      if (btn) {
+        btn.style.display = "flex";
+        btn.onclick = saveAllPending;
+      }
+      if (status) status.textContent = "Cambios sin guardar...";
     });
   });
 }
@@ -568,8 +573,13 @@ function handleScoreChange(e) {
   if (!pendingSaves[fixtureId]) pendingSaves[fixtureId] = {};
   pendingSaves[fixtureId][side] = isNaN(value) ? 0 : value;
 
-  document.getElementById("save-all-btn").style.display = "flex";
-  document.getElementById("save-status").textContent = "Cambios sin guardar...";
+  const btn = document.getElementById("save-all-btn");
+  const status = document.getElementById("save-status");
+  if (btn) {
+    btn.style.display = "flex";
+    btn.onclick = saveAllPending;
+  }
+  if (status) status.textContent = "Cambios sin guardar...";
 }
 
 async function saveAllPending() {
@@ -694,10 +704,6 @@ function startCountdownTicker() {
   window._predictionsCountdown = countdownInterval;
 }
 
-// Botón guardar todo manual
-document.addEventListener("click", (e) => {
-  if (e.target.closest("#save-all-btn")) saveAllPending();
-});
 
 // ── ESTILOS ───────────────────────────────────────────────────────
 
