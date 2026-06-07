@@ -40,7 +40,7 @@ export const usersAPI = {
 
 // ── Matches ────────────────────────────────────────
 export const matchesAPI = {
-  getAll:       (phase = null) => request("GET", `/matches/${phase ? `?phase=${phase}` : ""}`),
+  getAll: (phase = null) => request("GET", `/matches${phase ? `?phase=${phase}` : ""}`),
   getLive:      () => request("GET", "/matches/live"),
   getOne:       (fixtureId) => request("GET", `/matches/${fixtureId}`),
   getMyBracket: () => request("GET", "/matches/bracket/me"),
