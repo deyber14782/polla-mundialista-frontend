@@ -3,14 +3,15 @@ import { showToast } from "../js/components/toast.js";
 import { showSkeleton } from "../js/components/loader.js";
 
 const PHASES = [
-  { key: "all", label: "Todos" },
-  { key: "group", label: "Grupos" },
-  { key: "round_of_32", label: "Ronda 32" },
-  { key: "round_of_16", label: "Octavos" },
+  { key: "all",          label: "Todos" },
+  { key: "group",        label: "Grupos" },
+  { key: "round_of_32",  label: "Ronda 32" },
+  { key: "round_of_16",  label: "Octavos" },
   { key: "quarterfinal", label: "Cuartos" },
-  { key: "semifinal", label: "Semis" },
-  { key: "third_place", label: "3er lugar" },
-  { key: "final", label: "Final" },
+  { key: "semifinal",    label: "Semis" },
+  { key: "third_place",  label: "3er lugar" },
+  { key: "final",        label: "Final" },
+  { key: "special",      label: "Especiales" },
 ];
 
 const WORLD_CUP_START = new Date("2026-06-11T11:00:00Z"); // 6am Colombia
@@ -83,14 +84,17 @@ export async function renderPredictions(container) {
 
 async function loadPredictionsData() {
   try {
-    const [matchesRes, predsRes] = await Promise.all([
+    const [matchesRes, predsRes, topScorerRes] = await Promise.all([
       matchesAPI.getAll(),
       predictionsAPI.getMyPredictions(),
+      predictionsAPI.getMyTopScorer().catch(() => ({ player_name: "", team_name: "" })),
     ]);
 
     allMatches = matchesRes.matches || [];
     const preds = predsRes.predictions || [];
     preds.forEach(p => { myPredictions[p.fixture_id] = p; });
+
+    window._topScorer = topScorerRes;
 
     const groupMatches = allMatches.filter(m => m.phase === "group");
     const groupPreds = preds.filter(p => {
@@ -147,10 +151,13 @@ function setupTabListeners() {
 
 function renderContent() {
   const container = document.getElementById("predictions-content");
-  const isGroupPhase = currentPhase === "all" || currentPhase === "group";
+  const isGroupPhase   = currentPhase === "all" || currentPhase === "group";
+  const isSpecialPhase = currentPhase === "special";
 
   if (isGroupPhase) {
     renderGroupsWithTables(container);
+  } else if (isSpecialPhase) {
+    renderSpecialPredictions(container);
   } else {
     renderKnockoutMatches(container);
   }
@@ -161,7 +168,6 @@ function renderContent() {
 function renderGroupsWithTables(container) {
   const groupMatches = allMatches.filter(m => m.phase === "group");
 
-  // Agrupar partidos por grupo
   const grouped = {};
   groupMatches.forEach(m => {
     const g = m.group || "Sin grupo";
@@ -177,11 +183,9 @@ function renderGroupsWithTables(container) {
         <i class="fas fa-layer-group"></i> ${group}
       </h2>
       <div class="group-layout">
-        <!-- Partidos -->
         <div class="group-matches">
           ${grouped[group].map(m => renderMatchCard(m)).join("")}
         </div>
-        <!-- Tabla -->
         <div class="group-table-wrap">
           ${renderGroupTable(group, grouped[group])}
         </div>
@@ -284,9 +288,7 @@ function calculateGroupTable(groupName, matches) {
 
   Object.values(teams).forEach(t => { t.dg = t.gf - t.gc; });
 
-  const teamsList = Object.values(teams);
-
-  return teamsList.sort((a, b) => {
+  return Object.values(teams).sort((a, b) => {
     if (b.pts !== a.pts) return b.pts - a.pts;
     if (b.dg !== a.dg) return b.dg - a.dg;
     if (b.gf !== a.gf) return b.gf - a.gf;
@@ -324,8 +326,7 @@ function renderKnockoutMatches(container) {
         <h3>Completa las predicciones de grupos primero</h3>
         <p>Necesitas predecir los 72 partidos de la fase de grupos para
         desbloquear las eliminatorias y ver los equipos proyectados.</p>
-        <button class="btn btn-primary" onclick="window.navigate('/predictions')
-          ; document.querySelector('[data-phase=group]').click()">
+        <button class="btn btn-primary" onclick="document.querySelector('[data-phase=group]').click()">
           <i class="fas fa-futbol"></i> Ir a fase de grupos
         </button>
       </div>
@@ -351,6 +352,120 @@ function renderKnockoutMatches(container) {
 
   attachInputListeners();
   startCountdownTicker();
+}
+
+// ── PREDICCIONES ESPECIALES ───────────────────────────────────────
+
+function renderSpecialPredictions(container) {
+  const ts = window._topScorer || { player_name: "", team_name: "" };
+
+  container.innerHTML = `
+    <div class="special-predictions">
+
+      <div class="card special-card">
+        <div class="card-header">
+          <span class="card-title">
+            <i class="fas fa-shoe-prints"></i> Máximo goleador
+          </span>
+          <span class="special-pts-badge">+5 pts</span>
+        </div>
+
+        <p class="special-desc">
+          Predice el jugador que más goles anotará en todo el torneo.
+          Solo se otorgan puntos si aciertas exactamente el nombre.
+        </p>
+
+        <div class="input-group" style="margin-top:1.25rem">
+          <label>Nombre del jugador</label>
+          <div class="input-wrapper">
+            <i class="fas fa-user input-icon"></i>
+            <input type="text" id="top-scorer-name" class="input-field"
+              placeholder="ej. Lionel Messi"
+              value="${ts.player_name || ""}" />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Selección</label>
+          <div class="input-wrapper">
+            <i class="fas fa-flag input-icon"></i>
+            <input type="text" id="top-scorer-team" class="input-field"
+              placeholder="ej. Argentina"
+              value="${ts.team_name || ""}" />
+          </div>
+        </div>
+
+        ${ts.player_name ? `
+          <div class="special-current">
+            <i class="fas fa-check-circle" style="color:var(--success)"></i>
+            Predicción guardada: <strong>${ts.player_name}</strong> (${ts.team_name})
+          </div>
+        ` : ""}
+
+        <button class="btn btn-primary btn-full" id="save-top-scorer-btn"
+          style="margin-top:1rem">
+          <i class="fas fa-save"></i> Guardar predicción
+        </button>
+      </div>
+
+      <div class="card special-info-card" style="margin-top:1.5rem">
+        <div class="card-header">
+          <span class="card-title">
+            <i class="fas fa-info-circle"></i> Predicciones implícitas
+          </span>
+        </div>
+        <p style="font-size:0.9rem;color:var(--text-light);line-height:1.7">
+          El <strong>campeón, subcampeón, tercer y cuarto puesto</strong> se determinan
+          automáticamente a partir de tus predicciones de la Final y el partido por el
+          Tercer Puesto. No necesitas predecirlos por separado.
+        </p>
+        <div class="implicit-preds-grid">
+          <div class="implicit-pred">
+            <span class="implicit-pts">+12</span>
+            <span>Campeón</span>
+          </div>
+          <div class="implicit-pred">
+            <span class="implicit-pts">+10</span>
+            <span>Subcampeón</span>
+          </div>
+          <div class="implicit-pred">
+            <span class="implicit-pts">+8</span>
+            <span>Tercer puesto</span>
+          </div>
+          <div class="implicit-pred">
+            <span class="implicit-pts">+6</span>
+            <span>Cuarto puesto</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  document.getElementById("save-top-scorer-btn").addEventListener("click", async () => {
+    const playerName = document.getElementById("top-scorer-name").value.trim();
+    const teamName   = document.getElementById("top-scorer-team").value.trim();
+    const btn        = document.getElementById("save-top-scorer-btn");
+
+    if (!playerName || !teamName) {
+      showToast("Completa el nombre del jugador y la selección", "warning");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<div class="spinner" style="width:18px;height:18px;border-width:2px"></div> Guardando...`;
+
+    try {
+      await predictionsAPI.saveTopScorer({ player_name: playerName, team_name: teamName });
+      window._topScorer = { player_name: playerName, team_name: teamName };
+      showToast("Goleador guardado correctamente", "success");
+      renderSpecialPredictions(document.getElementById("predictions-content"));
+    } catch (err) {
+      showToast("Error guardando la predicción", "error");
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fas fa-save"></i> Guardar predicción`;
+    }
+  });
 }
 
 // ── TARJETA DE PARTIDO ────────────────────────────────────────────
@@ -443,14 +558,14 @@ function renderMatchCard(match) {
 
         <div class="mpc-center">
           ${effectiveLocked
-      ? knockoutLocked
-        ? `<div class="tbd-display">?</div>`
-        : `<div class="score-display">
+            ? knockoutLocked
+              ? `<div class="tbd-display">?</div>`
+              : `<div class="score-display">
                    <span>${homeVal !== "" ? homeVal : "-"}</span>
                    <span class="score-sep">:</span>
                    <span>${awayVal !== "" ? awayVal : "-"}</span>
                  </div>`
-      : `<div class="score-input-group">
+            : `<div class="score-input-group">
                  <input type="text" inputmode="numeric" class="score-input"
                    data-fixture="${match.fixture_id}" data-side="home"
                    value="${homeVal}" placeholder="-" maxlength="2" />
@@ -459,7 +574,7 @@ function renderMatchCard(match) {
                    data-fixture="${match.fixture_id}" data-side="away"
                    value="${awayVal}" placeholder="-" maxlength="2" />
                </div>`
-    }
+          }
           <div class="mpc-time" id="countdown-${match.fixture_id}">
             ${getCountdownOrTime(match.kickoff, match.status)}
           </div>
@@ -480,13 +595,11 @@ function renderMatchCard(match) {
 // ── INPUT LISTENERS ───────────────────────────────────────────────
 
 function attachInputListeners() {
-  // ✅ FIX 1: conectar listeners de score a handleScoreChange
   document.querySelectorAll(".score-input").forEach(input => {
     input.addEventListener("input", handleScoreChange);
     input.addEventListener("change", updateGroupTables);
   });
 
-  // ✅ FIX 2: renombrado saveBtn para no colisionar con variable btn del forEach
   document.querySelectorAll(".penalty-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const fixtureId = parseInt(btn.dataset.fixture);
@@ -505,12 +618,9 @@ function attachInputListeners() {
       }
 
       const saveBtn = document.getElementById("save-all-btn");
-      const status = document.getElementById("save-status");
-      if (saveBtn) {
-        saveBtn.style.display = "flex";
-        saveBtn.onclick = saveAllPending;
-      }
-      if (status) status.textContent = "Cambios sin guardar...";
+      const status  = document.getElementById("save-status");
+      if (saveBtn) { saveBtn.style.display = "flex"; saveBtn.onclick = saveAllPending; }
+      if (status)  status.textContent = "Cambios sin guardar...";
     });
   });
 }
@@ -539,7 +649,7 @@ function updateGroupTables() {
         if (!isNaN(hv) && !isNaN(av)) {
           myPredictions[match.fixture_id] = {
             ...myPredictions[match.fixture_id],
-            fixture_id: match.fixture_id,
+            fixture_id:     match.fixture_id,
             predicted_home: hv,
             predicted_away: av,
           };
@@ -553,22 +663,108 @@ function updateGroupTables() {
 
 function handleScoreChange(e) {
   const fixtureId = parseInt(e.target.dataset.fixture);
-  const side = e.target.dataset.side;
-  const value = parseInt(e.target.value);
+  const side      = e.target.dataset.side;
+  const value     = parseInt(e.target.value);
 
   if (!pendingSaves[fixtureId]) pendingSaves[fixtureId] = {};
   pendingSaves[fixtureId][side] = isNaN(value) ? 0 : value;
 
   const saveBtn = document.getElementById("save-all-btn");
-  const status = document.getElementById("save-status");
-  if (saveBtn) {
-    saveBtn.style.display = "flex";
-    saveBtn.onclick = saveAllPending;
-  }
-  if (status) status.textContent = "Cambios sin guardar...";
+  const status  = document.getElementById("save-status");
+  if (saveBtn) { saveBtn.style.display = "flex"; saveBtn.onclick = saveAllPending; }
+  if (status)  status.textContent = "Cambios sin guardar...";
 
-  // ✅ actualizar tabla en tiempo real mientras escribe
+  checkPenaltyVisibility(fixtureId);
   updateGroupTables();
+}
+
+function checkPenaltyVisibility(fixtureId) {
+  const match = allMatches.find(m => m.fixture_id === fixtureId);
+  if (!match || match.phase === "group") return;
+
+  const homeInput = document.querySelector(`.score-input[data-fixture="${fixtureId}"][data-side="home"]`);
+  const awayInput = document.querySelector(`.score-input[data-fixture="${fixtureId}"][data-side="away"]`);
+  if (!homeInput || !awayInput) return;
+
+  const hv     = parseInt(homeInput.value);
+  const av     = parseInt(awayInput.value);
+  const isDraw = !isNaN(hv) && !isNaN(av) && hv === av;
+  const card   = homeInput.closest(".match-pred-card");
+  if (!card) return;
+
+  let penaltyEl = document.getElementById(`penalty-${fixtureId}`);
+
+  if (isDraw) {
+    card.classList.add("needs-penalty");
+
+    const badge = card.querySelector(".badge");
+    if (badge) {
+      badge.className = "badge badge-penalty";
+      badge.innerHTML = `<i class="fas fa-circle-dot"></i> Define ganador en penales`;
+    }
+
+    if (!penaltyEl) {
+      let homeTeam = match.home_team;
+      let awayTeam = match.away_team;
+      if (window._userBracket?.bracket?.[fixtureId]) {
+        homeTeam = window._userBracket.bracket[fixtureId].home_team;
+        awayTeam = window._userBracket.bracket[fixtureId].away_team;
+      }
+
+      const existingPenalty = pendingSaves[fixtureId]?.penalty_winner ||
+        myPredictions[fixtureId]?.penalty_winner || "";
+
+      const div = document.createElement("div");
+      div.className = "penalty-selector";
+      div.id = `penalty-${fixtureId}`;
+      div.innerHTML = `
+        <span class="penalty-label">Ganador en penales:</span>
+        <div class="penalty-options">
+          <button class="penalty-btn ${existingPenalty === "home" ? "selected" : ""}"
+            data-fixture="${fixtureId}" data-winner="home">
+            ${homeTeam.name}
+          </button>
+          <button class="penalty-btn ${existingPenalty === "away" ? "selected" : ""}"
+            data-fixture="${fixtureId}" data-winner="away">
+            ${awayTeam.name}
+          </button>
+        </div>
+      `;
+      card.appendChild(div);
+
+      div.querySelectorAll(".penalty-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const winner = btn.dataset.winner;
+          div.querySelectorAll(".penalty-btn").forEach(b => b.classList.remove("selected"));
+          btn.classList.add("selected");
+
+          if (!pendingSaves[fixtureId]) pendingSaves[fixtureId] = {};
+          pendingSaves[fixtureId].penalty_winner = winner;
+          if (myPredictions[fixtureId]) myPredictions[fixtureId].penalty_winner = winner;
+
+          const saveBtn = document.getElementById("save-all-btn");
+          const status  = document.getElementById("save-status");
+          if (saveBtn) { saveBtn.style.display = "flex"; saveBtn.onclick = saveAllPending; }
+          if (status)  status.textContent = "Cambios sin guardar...";
+        });
+      });
+    }
+  } else {
+    card.classList.remove("needs-penalty");
+    if (penaltyEl) penaltyEl.remove();
+
+    if (pendingSaves[fixtureId])  delete pendingSaves[fixtureId].penalty_winner;
+    if (myPredictions[fixtureId]) delete myPredictions[fixtureId].penalty_winner;
+
+    const hasPred = !!myPredictions[fixtureId];
+    const badge   = card.querySelector(".badge");
+    if (badge && !card.classList.contains("locked")) {
+      badge.className = `badge ${hasPred ? "badge-saved" : "badge-empty"}`;
+      badge.innerHTML = hasPred
+        ? `<i class="fas fa-check"></i> Guardado`
+        : `<i class="fas fa-pencil-alt"></i> Sin predecir`;
+    }
+  }
 }
 
 async function saveAllPending() {
@@ -577,9 +773,9 @@ async function saveAllPending() {
 
   allInputs.forEach(input => {
     const fixtureId = parseInt(input.dataset.fixture);
-    const side = input.dataset.side;
-    const raw = input.value.trim();
-    const value = parseInt(raw);
+    const side      = input.dataset.side;
+    const raw       = input.value.trim();
+    const value     = parseInt(raw);
     if (raw === "" || isNaN(value)) return;
     if (!collected[fixtureId]) collected[fixtureId] = {};
     collected[fixtureId][side] = value;
@@ -594,7 +790,7 @@ async function saveAllPending() {
   const batch = Object.entries(merged)
     .filter(([id, scores]) => scores.home !== undefined && scores.away !== undefined)
     .map(([id, scores]) => ({
-      fixture_id: parseInt(id),
+      fixture_id:     parseInt(id),
       predicted_home: scores.home,
       predicted_away: scores.away,
       penalty_winner: scores.penalty_winner || null,
@@ -605,8 +801,35 @@ async function saveAllPending() {
     return;
   }
 
-  document.getElementById("save-status").textContent = "Guardando...";
-  document.getElementById("save-all-btn").disabled = true;
+  // Validar empates en eliminatoria sin ganador en penales
+  const missingPenalty = batch.filter(p => {
+    const match = allMatches.find(m => m.fixture_id === p.fixture_id);
+    if (!match || match.phase === "group") return false;
+    return p.predicted_home === p.predicted_away && !p.penalty_winner;
+  });
+
+  if (missingPenalty.length) {
+    const names = missingPenalty.map(p => {
+      const match = allMatches.find(m => m.fixture_id === p.fixture_id);
+      return `${match?.home_team?.name || "?"} vs ${match?.away_team?.name || "?"}`;
+    }).join(", ");
+    showToast(`Define el ganador en penales: ${names}`, "warning");
+    missingPenalty.forEach(p => {
+      const card = document.querySelector(
+        `.score-input[data-fixture="${p.fixture_id}"]`
+      )?.closest(".match-pred-card");
+      if (card) {
+        card.classList.add("penalty-missing");
+        setTimeout(() => card.classList.remove("penalty-missing"), 2500);
+      }
+    });
+    return;
+  }
+
+  const saveBtn = document.getElementById("save-all-btn");
+  const status  = document.getElementById("save-status");
+  if (status)  status.textContent = "Guardando...";
+  if (saveBtn) saveBtn.disabled = true;
 
   try {
     const result = await predictionsAPI.saveBatch(batch);
@@ -615,14 +838,14 @@ async function saveAllPending() {
     batch.forEach(p => {
       myPredictions[p.fixture_id] = {
         ...myPredictions[p.fixture_id],
-        fixture_id: p.fixture_id,
+        fixture_id:     p.fixture_id,
         predicted_home: p.predicted_home,
         predicted_away: p.predicted_away,
+        penalty_winner: p.penalty_winner,
       };
     });
 
     showToast(`${result.saved} predicciones guardadas`, "success");
-
     if (result.skipped > 0) {
       showToast(`${result.skipped} partidos omitidos (ya iniciaron)`, "warning");
     }
@@ -631,9 +854,8 @@ async function saveAllPending() {
 
   } catch (err) {
     showToast("Error guardando predicciones", "error");
-    document.getElementById("save-status").textContent = "Error al guardar";
+    if (status) status.textContent = "Error al guardar";
   } finally {
-    const saveBtn = document.getElementById("save-all-btn");
     if (saveBtn) saveBtn.disabled = false;
   }
 }
@@ -658,19 +880,19 @@ function getCountdownOrTime(kickoff, status) {
   if (status === "1H") return `<span style="color:var(--error);font-weight:700">⚽ Primer tiempo</span>`;
   if (status === "HT") return `<span style="color:var(--warning);font-weight:700">⏸ Descanso</span>`;
   if (status === "2H") return `<span style="color:var(--error);font-weight:700">⚽ Segundo tiempo</span>`;
-  if (diff <= 0) return `<span style="color:var(--error);font-weight:600">Comenzando...</span>`;
+  if (diff <= 0)       return `<span style="color:var(--error);font-weight:600">Comenzando...</span>`;
   return formatCountdown(diff, kickoff);
 }
 
 function formatCountdown(diff, kickoff) {
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const days    = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours   = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-  if (days > 1) return `<span style="color:var(--text-light)">📅 ${formatKickoff(kickoff)}</span>`;
+  if (days > 1)   return `<span style="color:var(--text-light)">📅 ${formatKickoff(kickoff)}</span>`;
   if (days === 1) return `<span style="color:var(--turq-dark)">⏱ Mañana ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}</span>`;
-  if (hours > 0) return `<span style="color:var(--turq-dark)">⏱ ${hours}h ${String(minutes).padStart(2, "0")}m</span>`;
+  if (hours > 0)  return `<span style="color:var(--turq-dark)">⏱ ${hours}h ${String(minutes).padStart(2, "0")}m</span>`;
   return `<span style="color:var(--warning);font-weight:700">⏱ ${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}</span>`;
 }
 
@@ -691,7 +913,6 @@ function startCountdownTicker() {
   }, 1000);
   window._predictionsCountdown = countdownInterval;
 }
-
 
 // ── ESTILOS ───────────────────────────────────────────────────────
 
@@ -714,10 +935,7 @@ function injectPredictionsStyles() {
       font-weight: 500;
     }
 
-    /* ── Sección de grupo ── */
-    .group-section {
-      margin-bottom: 2.5rem;
-    }
+    .group-section { margin-bottom: 2.5rem; }
 
     .group-title {
       font-size: 1rem;
@@ -738,7 +956,6 @@ function injectPredictionsStyles() {
       align-items: start;
     }
 
-    /* ── Tabla de posiciones del grupo ── */
     .group-standing-card {
       background: var(--white);
       border-radius: var(--radius);
@@ -774,26 +991,11 @@ function injectPredictionsStyles() {
 
     .group-standing-row:last-of-type { border-bottom: none; }
     .group-standing-row:hover { background: var(--gray-light); }
+    .group-standing-row.qualifies  { border-left: 3px solid var(--turq); }
+    .group-standing-row.third-place { border-left: 3px solid var(--warning); }
+    .group-standing-row.eliminated { border-left: 3px solid transparent; opacity: 0.7; }
 
-    .group-standing-row.qualifies {
-      border-left: 3px solid var(--turq);
-    }
-
-    .group-standing-row.third-place {
-      border-left: 3px solid var(--warning);
-    }
-
-    .group-standing-row.eliminated {
-      border-left: 3px solid transparent;
-      opacity: 0.7;
-    }
-
-    .standing-pos {
-      font-weight: 700;
-      color: var(--navy);
-      text-align: center;
-      font-size: 0.78rem;
-    }
+    .standing-pos { font-weight: 700; color: var(--navy); text-align: center; font-size: 0.78rem; }
 
     .standing-team {
       display: flex;
@@ -804,12 +1006,7 @@ function injectPredictionsStyles() {
       overflow: hidden;
     }
 
-    .standing-logo {
-      width: 20px;
-      height: 20px;
-      object-fit: contain;
-      flex-shrink: 0;
-    }
+    .standing-logo { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
 
     .standing-team span {
       white-space: nowrap;
@@ -819,22 +1016,9 @@ function injectPredictionsStyles() {
       max-width: 80px;
     }
 
-    .standing-pts {
-      font-weight: 800;
-      color: var(--navy);
-      text-align: center;
-    }
-
-    .standing-pj, .standing-gf {
-      text-align: center;
-      color: var(--text-light);
-    }
-
-    .standing-dg {
-      text-align: center;
-      font-weight: 600;
-    }
-
+    .standing-pts  { font-weight: 800; color: var(--navy); text-align: center; }
+    .standing-pj, .standing-gf { text-align: center; color: var(--text-light); }
+    .standing-dg   { text-align: center; font-weight: 600; }
     .standing-dg.pos { color: var(--success); }
     .standing-dg.neg { color: var(--error); }
 
@@ -851,7 +1035,6 @@ function injectPredictionsStyles() {
     .legend-third     { color: var(--warning); }
     .legend-out       { color: var(--gray); }
 
-    /* ── Match cards ── */
     .match-group { margin-bottom: 1.5rem; }
 
     .match-date-header {
@@ -874,232 +1057,133 @@ function injectPredictionsStyles() {
       transition: var(--transition);
     }
 
-    .match-pred-card:not(.has-pred):not(.locked) {
-      border: 2px dashed var(--gray-mid);
-    }
-
-    .match-pred-card:not(.has-pred):not(.locked):hover {
-      border-color: var(--turq);
-      border-style: solid;
-    }
-
-    .match-pred-card:hover { border-color: var(--turq); }
+    .match-pred-card:not(.has-pred):not(.locked) { border: 2px dashed var(--gray-mid); }
+    .match-pred-card:not(.has-pred):not(.locked):hover { border-color: var(--turq); border-style: solid; }
+    .match-pred-card:hover  { border-color: var(--turq); }
     .match-pred-card.locked { opacity: 0.75; }
     .match-pred-card.locked:hover { border-color: var(--gray-mid); }
     .match-pred-card.has-pred { border-left: 4px solid var(--success); }
-    .match-pred-card.knockout-locked {
-      opacity: 0.5;
-      filter: grayscale(30%);
+    .match-pred-card.knockout-locked { opacity: 0.5; filter: grayscale(30%); }
+
+    .mpc-top { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; }
+    .mpc-round { font-size: 0.72rem; color: var(--text-light); margin-left: auto; }
+
+    .mpc-body { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.75rem; }
+
+    .mpc-team { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+    .mpc-logo { width: 38px; height: 38px; object-fit: contain; }
+    .mpc-name { font-size: 0.78rem; font-weight: 600; text-align: center; color: var(--text); }
+
+    .mpc-center { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+    .mpc-time   { font-size: 0.72rem; color: var(--text-light); text-align: center; }
+
+    .score-display { display: flex; align-items: center; gap: 0.4rem; font-size: 1.4rem; font-weight: 800; color: var(--navy); }
+    .score-sep { color: var(--gray); }
+    .real-score { font-size: 0.72rem; color: var(--text-light); text-align: center; }
+
+    .pred-points { font-size: 0.78rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; }
+    .pts-good { background: rgba(34,197,94,0.12); color: var(--success); }
+    .pts-zero { background: var(--gray-mid); color: var(--text-light); }
+
+    .badge-saved  { background: rgba(34,197,94,0.12); color: var(--success); }
+    .badge-empty  { background: rgba(53,198,244,0.1); color: var(--turq-dark); }
+
+    .score-input:placeholder-shown { background: var(--gray-light); border-color: var(--gray-mid); color: var(--gray); }
+    .score-input:not(:placeholder-shown) { background: var(--white); border-color: var(--turq); color: var(--navy); font-weight: 700; }
+
+    .tbd-display { font-size: 1.8rem; font-weight: 800; color: var(--gray); }
+
+    .knockout-locked-msg { text-align: center; padding: 4rem 2rem; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .knockout-locked-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .knockout-locked-msg h3 { font-size: 1.2rem; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem; }
+    .knockout-locked-msg p { color: var(--text-light); font-size: 0.9rem; margin-bottom: 1.5rem; max-width: 400px; margin-left: auto; margin-right: auto; }
+
+    .badge-penalty { background: rgba(245,158,11,0.15); color: #F59E0B; animation: pulse 1.5s infinite; }
+    .match-pred-card.needs-penalty { border: 2px solid rgba(245,158,11,0.4); }
+
+    .penalty-selector { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--gray-mid); display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+    .penalty-label    { font-size: 0.82rem; font-weight: 600; color: #F59E0B; white-space: nowrap; }
+    .penalty-options  { display: flex; gap: 0.5rem; }
+
+    .penalty-btn { padding: 0.35rem 0.85rem; border-radius: var(--radius-sm); font-size: 0.82rem; font-weight: 600; border: 2px solid var(--gray-mid); background: var(--white); color: var(--text); cursor: pointer; transition: var(--transition); }
+    .penalty-btn:hover { border-color: #F59E0B; color: #F59E0B; }
+    .penalty-btn.selected { background: #F59E0B; border-color: #F59E0B; color: var(--white); }
+
+    @keyframes penalty-shake {
+      0%, 100% { transform: translateX(0); }
+      20%       { transform: translateX(-6px); }
+      40%       { transform: translateX(6px); }
+      60%       { transform: translateX(-4px); }
+      80%       { transform: translateX(4px); }
     }
 
-    .mpc-top {
+    .match-pred-card.penalty-missing {
+      border: 2px solid #F59E0B !important;
+      animation: penalty-shake 0.5s ease;
+      box-shadow: 0 0 0 3px rgba(245,158,11,0.25);
+    }
+
+    /* ── Predicciones especiales ── */
+    .special-predictions { max-width: 600px; }
+
+    .special-card { border-top: 4px solid var(--turq); }
+
+    .special-pts-badge {
+      background: rgba(53,198,244,0.12);
+      color: var(--turq-dark);
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+    }
+
+    .special-desc { font-size: 0.88rem; color: var(--text-light); line-height: 1.6; margin-top: 0.25rem; }
+
+    .special-current {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin-bottom: 0.6rem;
-    }
-
-    .mpc-round {
-      font-size: 0.72rem;
+      font-size: 0.88rem;
       color: var(--text-light);
-      margin-left: auto;
+      background: rgba(34,197,94,0.08);
+      padding: 0.65rem 0.85rem;
+      border-radius: var(--radius-sm);
+      margin-top: 0.5rem;
     }
 
-    .mpc-body {
+    .implicit-preds-grid {
       display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
+      grid-template-columns: repeat(4, 1fr);
       gap: 0.75rem;
+      margin-top: 1rem;
     }
 
-    .mpc-team {
+    .implicit-pred {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 0.3rem;
-    }
-
-    .mpc-logo {
-      width: 38px;
-      height: 38px;
-      object-fit: contain;
-    }
-
-    .mpc-name {
-      font-size: 0.78rem;
-      font-weight: 600;
-      text-align: center;
-      color: var(--text);
-    }
-
-    .mpc-center {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.35rem;
-    }
-
-    .mpc-time {
-      font-size: 0.72rem;
-      color: var(--text-light);
-      text-align: center;
-    }
-
-    .score-display {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: var(--navy);
-    }
-
-    .score-sep { color: var(--gray); }
-
-    .real-score {
-      font-size: 0.72rem;
-      color: var(--text-light);
-      text-align: center;
-    }
-
-    .pred-points {
-      font-size: 0.78rem;
-      font-weight: 700;
-      padding: 0.15rem 0.5rem;
-      border-radius: 999px;
-    }
-
-    .pts-good { background: rgba(34,197,94,0.12); color: var(--success); }
-    .pts-zero { background: var(--gray-mid); color: var(--text-light); }
-
-    .badge-saved {
-      background: rgba(34,197,94,0.12);
-      color: var(--success);
-    }
-
-    .badge-empty {
-      background: rgba(53,198,244,0.1);
-      color: var(--turq-dark);
-    }
-
-    .score-input:placeholder-shown {
       background: var(--gray-light);
-      border-color: var(--gray-mid);
-      color: var(--gray);
-    }
-
-    .score-input:not(:placeholder-shown) {
-      background: var(--white);
-      border-color: var(--turq);
-      color: var(--navy);
-      font-weight: 700;
-    }
-
-    .tbd-display {
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: var(--gray);
-    }
-
-    /* ── Knockout locked msg ── */
-    .knockout-locked-msg {
-      text-align: center;
-      padding: 4rem 2rem;
-      background: var(--white);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-
-    .knockout-locked-icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-    }
-
-    .knockout-locked-msg h3 {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--navy);
-      margin-bottom: 0.5rem;
-    }
-
-    .knockout-locked-msg p {
-      color: var(--text-light);
-      font-size: 0.9rem;
-      margin-bottom: 1.5rem;
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .badge-penalty {
-      background: rgba(245,158,11,0.15);
-      color: #F59E0B;
-      animation: pulse 1.5s infinite;
-    }
-
-    .match-pred-card.needs-penalty {
-      border: 2px solid rgba(245,158,11,0.4);
-    }
-
-    .penalty-selector {
-      margin-top: 0.75rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid var(--gray-mid);
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-
-    .penalty-label {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #F59E0B;
-      white-space: nowrap;
-    }
-
-    .penalty-options {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .penalty-btn {
-      padding: 0.35rem 0.85rem;
       border-radius: var(--radius-sm);
-      font-size: 0.82rem;
-      font-weight: 600;
-      border: 2px solid var(--gray-mid);
-      background: var(--white);
-      color: var(--text);
-      cursor: pointer;
-      transition: var(--transition);
+      padding: 0.75rem 0.5rem;
+      font-size: 0.78rem;
+      color: var(--text-light);
+      text-align: center;
     }
 
-    .penalty-btn:hover {
-      border-color: #F59E0B;
-      color: #F59E0B;
-    }
-
-    .penalty-btn.selected {
-      background: #F59E0B;
-      border-color: #F59E0B;
-      color: var(--white);
-    }
+    .implicit-pts { font-size: 1.1rem; font-weight: 800; color: var(--navy); }
 
     /* ── Responsive ── */
     @media (max-width: 900px) {
-      .group-layout {
-        grid-template-columns: 1fr;
-      }
-      .group-standing-card {
-        position: static;
-      }
+      .group-layout { grid-template-columns: 1fr; }
+      .group-standing-card { position: static; }
     }
 
     @media (max-width: 640px) {
       .mpc-logo { width: 28px; height: 28px; }
       .mpc-name { font-size: 0.68rem; }
       .score-input { width: 38px; height: 38px; font-size: 1rem; }
+      .implicit-preds-grid { grid-template-columns: repeat(2, 1fr); }
     }
   `;
   document.head.appendChild(style);

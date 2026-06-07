@@ -17,14 +17,14 @@ import {
 // 🔴 Reemplaza con tu config de Firebase Console
 // Ve a Configuración del proyecto → Tu app web → Configuración de SDK
 const firebaseConfig = {
-    apiKey: "AIzaSyByc7R6ovxWkZwqjpU-5E9A6dYSL3bB200",
-    authDomain: "polla-mundialista-393f8.firebaseapp.com",
-    projectId: "polla-mundialista-393f8",
-    storageBucket: "polla-mundialista-393f8.firebasestorage.app",
-    messagingSenderId: "243785784093",
-    appId: "1:243785784093:web:c2120967327d0f03275ff4"
+  apiKey: "AIzaSyBZsICvTB7dn_YZvYHLgGba6pC6M9gjvMc",
+  authDomain: "pollaalgorithmicsfunzamosquera.firebaseapp.com",
+  databaseURL: "https://pollaalgorithmicsfunzamosquera-default-rtdb.firebaseio.com",
+  projectId: "pollaalgorithmicsfunzamosquera",
+  storageBucket: "pollaalgorithmicsfunzamosquera.firebasestorage.app",
+  messagingSenderId: "774958382654",
+  appId: "1:774958382654:web:22294eb0ca0132ed7d1b6f"
 };
-
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 

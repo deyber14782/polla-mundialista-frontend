@@ -1,6 +1,6 @@
 import { getToken } from "./firebase.js";
 
-const BASE_URL = "https://polla-mundialista-production-b653.up.railway.app"; // en producción cambiar por la URL del backend
+const BASE_URL = "https://web-production-a1387.up.railway.app"; // en producción cambiar por la URL del backend
 
 async function request(method, endpoint, body = null) {
     const token = await getToken(true);
@@ -46,13 +46,16 @@ export const matchesAPI = {
   getMyBracket: () => request("GET", "/matches/bracket/me"),
 };
 // ── Predictions ────────────────────────────────────
+// Agrega a predictionsAPI
 export const predictionsAPI = {
-    create: (data) => request("POST", "/predictions/", data),
-    update: (fixtureId, data) => request("PUT", `/predictions/${fixtureId}`, data),
-    getMyPredictions: () => request("GET", "/predictions/me"),
-    getMyStats: () => request("GET", "/predictions/me/stats"),
+    create:              (data) => request("POST", "/predictions/", data),
+    update:              (fixtureId, data) => request("PUT", `/predictions/${fixtureId}`, data),
+    getMyPredictions:    () => request("GET", "/predictions/me"),
+    getMyStats:          () => request("GET", "/predictions/me/stats"),
     getMatchPredictions: (fixtureId) => request("GET", `/predictions/match/${fixtureId}`),
-    saveBatch: (predictions) => request("POST", "/predictions/batch", predictions),
+    saveBatch:           (predictions) => request("POST", "/predictions/batch", predictions),
+    saveTopScorer:       (data) => request("POST", "/predictions/top-scorer", data),
+    getMyTopScorer:      () => request("GET", "/predictions/top-scorer/me"),
 };
 
 // ── Ranking ────────────────────────────────────────
