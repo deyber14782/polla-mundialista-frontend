@@ -1,6 +1,6 @@
 import { getToken } from "./firebase.js";
 
-const BASE_URL = "polla-mundialista-production-b653.up.railway.app"; // en producción cambiar por la URL del backend
+const BASE_URL = "https://polla-mundialista-production-b653.up.railway.app";; // en producción cambiar por la URL del backend
 
 async function request(method, endpoint, body = null) {
     const token = await getToken(true);
