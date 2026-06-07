@@ -574,7 +574,6 @@ async function saveAllPending() {
     const result = await predictionsAPI.saveBatch(batch);
     pendingSaves = {};
 
-    // Actualizar predicciones en memoria
     batch.forEach(p => {
       myPredictions[p.fixture_id] = {
         ...myPredictions[p.fixture_id],
@@ -584,39 +583,14 @@ async function saveAllPending() {
       };
     });
 
-    // Agrega esto:
-    // Verificar si grupos están completos y recargar bracket
-    const groupMatches = allMatches.filter(m => m.phase === "group");
-    const groupPreds = Object.values(myPredictions).filter(p => {
-      const match = allMatches.find(m => m.fixture_id === p.fixture_id);
-      return match?.phase === "group";
-    });
-
-    window._groupsComplete = groupPreds.length >= groupMatches.length;
-
-    if (window._groupsComplete) {
-      try {
-        window._userBracket = await matchesAPI.getMyBracket();
-      } catch (e) {
-        window._userBracket = null;
-      }
-    }
-
-    // Re-renderizar contenido
-    renderContent();
-    updateProgressBar();
-    document.getElementById("save-all-btn").style.display = "none";
-    document.getElementById("save-status").textContent = "✓ Guardado";
     showToast(`${result.saved} predicciones guardadas`, "success");
 
     if (result.skipped > 0) {
       showToast(`${result.skipped} partidos omitidos (ya iniciaron)`, "warning");
     }
 
-    setTimeout(() => {
-      const el = document.getElementById("save-status");
-      if (el) el.textContent = "";
-    }, 3000);
+    // Recargar datos frescos y re-renderizar
+    await loadPredictionsData();
 
   } catch (err) {
     showToast("Error guardando predicciones", "error");
