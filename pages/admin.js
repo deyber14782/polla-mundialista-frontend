@@ -176,6 +176,7 @@ async function loadUsers() {
           <div>
             <p class="admin-user-name">${u.display_name}</p>
             <p class="admin-user-email">${u.email}</p>
+            <p class="admin-user-email">${u.phone || ""}</p>
           </div>
         </div>
         <div class="admin-user-right">

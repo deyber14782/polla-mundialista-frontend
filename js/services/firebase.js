@@ -4,6 +4,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  browserSessionPersistence,
+  setPersistence
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 import {
   getFirestore,
@@ -25,8 +27,13 @@ const firebaseConfig = {
   messagingSenderId: "774958382654",
   appId: "1:774958382654:web:22294eb0ca0132ed7d1b6f"
 };
+
+
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const db = getFirestore(app);
+
+setPersistence(auth, browserSessionPersistence);
 
 export async function loginWithEmail(email, password) {
   const userCredential = await signInWithEmailAndPassword(auth, email, password);

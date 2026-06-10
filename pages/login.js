@@ -104,7 +104,7 @@ async function handleLogin() {
     try {
         await loginWithEmail(email, password);
         showToast("¡Bienvenido!", "success");
-        navigate("/dashboard");
+        //navigate("/dashboard");
     } catch (err) {
         let msg = "Error al iniciar sesión";
         if (err.code === "auth/invalid-credential") msg = "Correo o contraseña incorrectos";

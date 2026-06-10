@@ -104,6 +104,13 @@ async function loadDashboardData() {
     // Ranking
     if (myRanking.status === "fulfilled") {
       renderMyRanking(myRanking.value);
+    } else {
+      document.getElementById("my-ranking").innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-shield-alt"></i>
+          <p>Los administradores no participan en el ranking.</p>
+        </div>
+      `;
     }
 
   } catch (err) {
