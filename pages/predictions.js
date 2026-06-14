@@ -3,41 +3,41 @@ import { showToast } from "../js/components/toast.js";
 import { showSkeleton } from "../js/components/loader.js";
 
 const PHASES = [
-  { key: "all",          label: "Todos" },
-  { key: "group",        label: "Grupos" },
-  { key: "round_of_32",  label: "Ronda 32" },
-  { key: "round_of_16",  label: "Octavos" },
+  { key: "all", label: "Todos" },
+  { key: "group", label: "Grupos" },
+  { key: "round_of_32", label: "Ronda 32" },
+  { key: "round_of_16", label: "Octavos" },
   { key: "quarterfinal", label: "Cuartos" },
-  { key: "semifinal",    label: "Semifinales" },
-  { key: "third_place",  label: "3er lugar" },
-  { key: "final",        label: "Final" },
-  { key: "special",      label: "Especiales" },
+  { key: "semifinal", label: "Semifinales" },
+  { key: "third_place", label: "3er lugar" },
+  { key: "final", label: "Final" },
+  { key: "special", label: "Especiales" },
 ];
 
 // Cada fase requiere que la anterior esté completa
 const PHASE_REQUIRES = {
-  round_of_32:  "group",
-  round_of_16:  "round_of_32",
+  round_of_32: "group",
+  round_of_16: "round_of_32",
   quarterfinal: "round_of_16",
-  semifinal:    "quarterfinal",
-  third_place:  "semifinal",
-  final:        "semifinal",
+  semifinal: "quarterfinal",
+  third_place: "semifinal",
+  final: "semifinal",
 };
 
 const PHASE_LABELS = {
-  group:        "Fase de Grupos",
-  round_of_32:  "Ronda de 32",
-  round_of_16:  "Octavos de Final",
+  group: "Fase de Grupos",
+  round_of_32: "Ronda de 32",
+  round_of_16: "Octavos de Final",
   quarterfinal: "Cuartos de Final",
-  semifinal:    "Semifinales",
-  third_place:  "Tercer Puesto",
-  final:        "Final",
+  semifinal: "Semifinales",
+  third_place: "Tercer Puesto",
+  final: "Final",
 };
 
 const WORLD_CUP_START = new Date("2026-06-18T11:00:00Z");
 
-const GROUPS = ["Group A","Group B","Group C","Group D","Group E","Group F",
-  "Group G","Group H","Group I","Group J","Group K","Group L"];
+const GROUPS = ["Group A", "Group B", "Group C", "Group D", "Group E", "Group F",
+  "Group G", "Group H", "Group I", "Group J", "Group K", "Group L"];
 
 let allMatches = [];
 let myPredictions = {};
@@ -60,7 +60,7 @@ function isPhaseUnlocked(phase) {
 }
 
 function computePhaseCompletion() {
-  const phases = ["group","round_of_32","round_of_16","quarterfinal","semifinal","third_place","final"];
+  const phases = ["group", "round_of_32", "round_of_16", "quarterfinal", "semifinal", "third_place", "final"];
   window._phaseComplete = {};
 
   for (const phase of phases) {
@@ -197,7 +197,7 @@ function setupTabListeners() {
 
 function renderContent() {
   const container = document.getElementById("predictions-content");
-  const isGroupPhase   = currentPhase === "all" || currentPhase === "group";
+  const isGroupPhase = currentPhase === "all" || currentPhase === "group";
   const isSpecialPhase = currentPhase === "special";
 
   if (isGroupPhase) {
@@ -496,8 +496,8 @@ function renderSpecialPredictions(container) {
 
   document.getElementById("save-top-scorer-btn").addEventListener("click", async () => {
     const playerName = document.getElementById("top-scorer-name").value.trim();
-    const teamName   = document.getElementById("top-scorer-team").value.trim();
-    const btn        = document.getElementById("save-top-scorer-btn");
+    const teamName = document.getElementById("top-scorer-team").value.trim();
+    const btn = document.getElementById("save-top-scorer-btn");
 
     if (!playerName || !teamName) {
       showToast("Completa el nombre del jugador y la selección", "warning");
@@ -523,7 +523,7 @@ function renderSpecialPredictions(container) {
 // ── TARJETA DE PARTIDO ────────────────────────────────────────────
 
 function renderMatchCard(match) {
-  const isLocked = isMatchLocked(match.kickoff);
+  const isLocked = isMatchLocked(match.kickoff, match.status);
   const isGroup = match.phase === "group";
   const isKnockout = !isGroup;
 
@@ -595,7 +595,7 @@ function renderMatchCard(match) {
   return `
     <div class="match-pred-card
       ${effectiveLocked ? "locked" : ""}
-      ${hasPred && !needsPenalty ? "has-pred" : ""}
+      ${hasPred && (!needsPenalty || penaltyWinner) ? "has-pred" : ""}
       ${phaseLocked ? "knockout-locked" : ""}
       ${needsPenalty ? "needs-penalty" : ""}">
 
@@ -613,14 +613,14 @@ function renderMatchCard(match) {
 
         <div class="mpc-center">
           ${effectiveLocked
-            ? phaseLocked
-              ? `<div class="tbd-display">?</div>`
-              : `<div class="score-display">
+      ? phaseLocked
+        ? `<div class="tbd-display">?</div>`
+        : `<div class="score-display">
                    <span>${homeVal !== "" ? homeVal : "-"}</span>
                    <span class="score-sep">:</span>
                    <span>${awayVal !== "" ? awayVal : "-"}</span>
                  </div>`
-            : `<div class="score-input-group">
+      : `<div class="score-input-group">
                  <input type="text" inputmode="numeric" class="score-input"
                    data-fixture="${match.fixture_id}" data-side="home"
                    value="${homeVal}" placeholder="-" maxlength="2" />
@@ -629,7 +629,7 @@ function renderMatchCard(match) {
                    data-fixture="${match.fixture_id}" data-side="away"
                    value="${awayVal}" placeholder="-" maxlength="2" />
                </div>`
-          }
+    }
           <div class="mpc-time" id="countdown-${match.fixture_id}">
             ${getCountdownOrTime(match.kickoff, match.status)}
           </div>
@@ -673,9 +673,9 @@ function attachInputListeners() {
       }
 
       const saveBtn = document.getElementById("save-all-btn");
-      const status  = document.getElementById("save-status");
+      const status = document.getElementById("save-status");
       if (saveBtn) { saveBtn.style.display = "flex"; saveBtn.onclick = saveAllPending; }
-      if (status)  status.textContent = "Cambios sin guardar...";
+      if (status) status.textContent = "Cambios sin guardar...";
     });
   });
 }
@@ -704,7 +704,7 @@ function updateGroupTables() {
         if (!isNaN(hv) && !isNaN(av)) {
           myPredictions[match.fixture_id] = {
             ...myPredictions[match.fixture_id],
-            fixture_id:     match.fixture_id,
+            fixture_id: match.fixture_id,
             predicted_home: hv,
             predicted_away: av,
           };
@@ -718,16 +718,16 @@ function updateGroupTables() {
 
 function handleScoreChange(e) {
   const fixtureId = parseInt(e.target.dataset.fixture);
-  const side      = e.target.dataset.side;
-  const value     = parseInt(e.target.value);
+  const side = e.target.dataset.side;
+  const value = parseInt(e.target.value);
 
   if (!pendingSaves[fixtureId]) pendingSaves[fixtureId] = {};
   pendingSaves[fixtureId][side] = isNaN(value) ? 0 : value;
 
   const saveBtn = document.getElementById("save-all-btn");
-  const status  = document.getElementById("save-status");
+  const status = document.getElementById("save-status");
   if (saveBtn) { saveBtn.style.display = "flex"; saveBtn.onclick = saveAllPending; }
-  if (status)  status.textContent = "Cambios sin guardar...";
+  if (status) status.textContent = "Cambios sin guardar...";
 
   checkPenaltyVisibility(fixtureId);
   updateGroupTables();
@@ -741,10 +741,10 @@ function checkPenaltyVisibility(fixtureId) {
   const awayInput = document.querySelector(`.score-input[data-fixture="${fixtureId}"][data-side="away"]`);
   if (!homeInput || !awayInput) return;
 
-  const hv     = parseInt(homeInput.value);
-  const av     = parseInt(awayInput.value);
+  const hv = parseInt(homeInput.value);
+  const av = parseInt(awayInput.value);
   const isDraw = !isNaN(hv) && !isNaN(av) && hv === av;
-  const card   = homeInput.closest(".match-pred-card");
+  const card = homeInput.closest(".match-pred-card");
   if (!card) return;
 
   let penaltyEl = document.getElementById(`penalty-${fixtureId}`);
@@ -798,9 +798,9 @@ function checkPenaltyVisibility(fixtureId) {
           if (myPredictions[fixtureId]) myPredictions[fixtureId].penalty_winner = winner;
 
           const saveBtn = document.getElementById("save-all-btn");
-          const status  = document.getElementById("save-status");
+          const status = document.getElementById("save-status");
           if (saveBtn) { saveBtn.style.display = "flex"; saveBtn.onclick = saveAllPending; }
-          if (status)  status.textContent = "Cambios sin guardar...";
+          if (status) status.textContent = "Cambios sin guardar...";
         });
       });
     }
@@ -808,11 +808,11 @@ function checkPenaltyVisibility(fixtureId) {
     card.classList.remove("needs-penalty");
     if (penaltyEl) penaltyEl.remove();
 
-    if (pendingSaves[fixtureId])  delete pendingSaves[fixtureId].penalty_winner;
+    if (pendingSaves[fixtureId]) delete pendingSaves[fixtureId].penalty_winner;
     if (myPredictions[fixtureId]) delete myPredictions[fixtureId].penalty_winner;
 
     const hasPred = !!myPredictions[fixtureId];
-    const badge   = card.querySelector(".badge");
+    const badge = card.querySelector(".badge");
     if (badge && !card.classList.contains("locked")) {
       badge.className = `badge ${hasPred ? "badge-saved" : "badge-empty"}`;
       badge.innerHTML = hasPred
@@ -828,9 +828,9 @@ async function saveAllPending() {
 
   allInputs.forEach(input => {
     const fixtureId = parseInt(input.dataset.fixture);
-    const side      = input.dataset.side;
-    const raw       = input.value.trim();
-    const value     = parseInt(raw);
+    const side = input.dataset.side;
+    const raw = input.value.trim();
+    const value = parseInt(raw);
     if (raw === "" || isNaN(value)) return;
     if (!collected[fixtureId]) collected[fixtureId] = {};
     collected[fixtureId][side] = value;
@@ -845,7 +845,7 @@ async function saveAllPending() {
   const batch = Object.entries(merged)
     .filter(([id, scores]) => scores.home !== undefined && scores.away !== undefined)
     .map(([id, scores]) => ({
-      fixture_id:     parseInt(id),
+      fixture_id: parseInt(id),
       predicted_home: scores.home,
       predicted_away: scores.away,
       penalty_winner: scores.penalty_winner || myPredictions[parseInt(id)]?.penalty_winner || null,
@@ -881,8 +881,8 @@ async function saveAllPending() {
   }
 
   const saveBtn = document.getElementById("save-all-btn");
-  const status  = document.getElementById("save-status");
-  if (status)  status.textContent = "Guardando...";
+  const status = document.getElementById("save-status");
+  if (status) status.textContent = "Guardando...";
   if (saveBtn) saveBtn.disabled = true;
 
   try {
@@ -892,7 +892,7 @@ async function saveAllPending() {
     batch.forEach(p => {
       myPredictions[p.fixture_id] = {
         ...myPredictions[p.fixture_id],
-        fixture_id:     p.fixture_id,
+        fixture_id: p.fixture_id,
         predicted_home: p.predicted_home,
         predicted_away: p.predicted_away,
         penalty_winner: p.penalty_winner,
@@ -906,7 +906,7 @@ async function saveAllPending() {
 
     // Recargar datos (recalcula completitud por fase)
     await loadPredictionsData();
-    if (status)  status.textContent = "";
+    if (status) status.textContent = "";
     if (saveBtn) { saveBtn.style.display = "none"; saveBtn.disabled = false; }
 
   } catch (err) {
@@ -919,8 +919,14 @@ async function saveAllPending() {
 
 // ── COUNTDOWN ─────────────────────────────────────────────────────
 
-function isMatchLocked(kickoff) {
-  return new Date() >= WORLD_CUP_START;
+function isMatchLocked(kickoff, status) {
+  // En juego: bloqueado
+  if (["1H", "HT", "2H", "ET", "P"].includes(status)) return true;
+  // Terminado: desbloqueado (backend dará 0 puntos si predice después)
+  if (status === "FT") return false;
+  // Kickoff pasó pero status aún no actualizado: bloqueado
+  if (new Date() >= new Date(kickoff)) return true;
+  return false;
 }
 
 function formatKickoff(kickoff) {
@@ -937,19 +943,19 @@ function getCountdownOrTime(kickoff, status) {
   if (status === "1H") return `<span style="color:var(--error);font-weight:700">⚽ Primer tiempo</span>`;
   if (status === "HT") return `<span style="color:var(--warning);font-weight:700">⏸ Descanso</span>`;
   if (status === "2H") return `<span style="color:var(--error);font-weight:700">⚽ Segundo tiempo</span>`;
-  if (diff <= 0)       return `<span style="color:var(--error);font-weight:600">Comenzando...</span>`;
+  if (diff <= 0) return `<span style="color:var(--error);font-weight:600">Comenzando...</span>`;
   return formatCountdown(diff, kickoff);
 }
 
 function formatCountdown(diff, kickoff) {
-  const days    = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours   = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-  if (days > 1)   return `<span style="color:var(--text-light)">📅 ${formatKickoff(kickoff)}</span>`;
+  if (days > 1) return `<span style="color:var(--text-light)">📅 ${formatKickoff(kickoff)}</span>`;
   if (days === 1) return `<span style="color:var(--turq-dark)">⏱ Mañana ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}</span>`;
-  if (hours > 0)  return `<span style="color:var(--turq-dark)">⏱ ${hours}h ${String(minutes).padStart(2, "0")}m</span>`;
+  if (hours > 0) return `<span style="color:var(--turq-dark)">⏱ ${hours}h ${String(minutes).padStart(2, "0")}m</span>`;
   return `<span style="color:var(--warning);font-weight:700">⏱ ${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}</span>`;
 }
 

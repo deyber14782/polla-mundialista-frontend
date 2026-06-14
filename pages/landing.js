@@ -184,7 +184,13 @@ export function renderLanding() {
       <div class="section-inner">
         <div class="section-tag">¿Cómo funciona?</div>
         <h2 class="section-heading">Así de simple</h2>
-        <p class="section-desc">Participa en la Polla Mundialista Algorithmics realizando tus predicciones para el Mundial. Suma puntos con cada acierto, sigue tu posición en el ranking en tiempo real y compite por entrar al Top 5 de la tabla general de todos los participantes para participar por los premios.</p>
+        <div class="como-funciona-intro">
+          <p class="section-desc" style="margin-bottom:0">Participa en la Polla Mundialista Algorithmics realizando tus predicciones para el Mundial. Suma puntos con cada acierto, sigue tu posición en el ranking en tiempo real y compite por entrar al Top 5 de la tabla general de todos los participantes para participar por los premios.</p>
+          <div class="como-warning-box">
+            <p><strong>⚠️ Importante:</strong> Solo obtendrás puntos por los partidos que predigas antes de que comiencen. Los partidos que ya hayan finalizado no otorgarán puntos.</p>
+            <p><strong>🚀</strong> Entre más rápido te inscribas y registres tus predicciones, más oportunidades tendrás de sumar puntos y entrar al Top 5 del ranking general.</p>
+          </div>
+        </div>
         <div class="steps-grid">
           <div class="step-card">
             <div class="step-number">01</div>
@@ -199,8 +205,8 @@ export function renderLanding() {
           <div class="step-card">
             <div class="step-number">02</div>
             <div class="step-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-            <h3>Predice antes del 11 de junio</h3>
-            <p>Tienes hasta el <strong>jueves 11 de junio a las 6:00 a.m.</strong> para registrar o modificar tus predicciones. Después de esa hora, la plataforma se bloqueará y comenzará oficialmente la competencia.</p>
+            <h3>Predice antes del 17 de junio</h3>
+            <p>Tienes hasta el <strong>jueves 17 de junio a las 9:00 p.m.</strong> para registrar o modificar tus predicciones. Después de esa hora, la plataforma se bloqueará y comenzará oficialmente la competencia.</p>
           </div>
           <div class="step-card">
             <div class="step-number">03</div>
@@ -784,6 +790,11 @@ function injectLandingStyles() {
     .section-tag { font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--turq-dark); margin-bottom:0.5rem; opacity:0.85; }
     .section-heading { font-size:clamp(2rem,4.5vw,3.2rem); font-weight:800; color:var(--navy); line-height:1.1; margin-bottom:1rem; letter-spacing:-0.02em; }
     .section-desc { font-size:1.05rem; color:var(--text-light); max-width:520px; line-height:1.7; margin-bottom:3rem; }
+    .como-funciona-intro { display:flex; gap:2rem; align-items:flex-start; margin-bottom:3rem; }
+    .como-funciona-intro .section-desc { flex:1; min-width:0; max-width:none; }
+    .como-warning-box { flex:0 0 340px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-left:4px solid #F59E0B; border-radius:var(--radius-sm); padding:1rem 1.25rem; }
+    .como-warning-box p { font-size:0.85rem; color:var(--text); line-height:1.6; margin:0; }
+    .como-warning-box p + p { margin-top:0.65rem; }
 
     /* ── STEPS ── */
     .steps-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; }
@@ -1130,6 +1141,9 @@ function injectLandingStyles() {
       .student-modal-header { padding: 1.25rem 1.25rem 1.1rem; gap: 1rem; }
       .sm-avatar-wrap { width: 68px; height: 68px; }
       .sm-name { font-size: 1rem; }
+
+      .como-funciona-intro { flex-direction:column; gap:1rem; } 
+      .como-warning-box { flex:none; width:100%; }
     }
 
     @media (max-width: 680px) {

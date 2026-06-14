@@ -43,6 +43,18 @@ export async function renderRanking(container) {
   window._rankingUnsub = listenToRanking((players) => {
     const myUid = auth.currentUser?.uid;
     const ranked = buildRanking(players);
+
+    // Mergear con datos del API (correct_winners, accuracy)
+    if (window._apiRankingData) {
+      ranked.forEach(r => {
+        const apiEntry = window._apiRankingData.find(a => a.uid === r.uid);
+        if (apiEntry) {
+          r.correct_winners = apiEntry.correct_winners || r.correct_winners;
+          r.accuracy = apiEntry.accuracy || r.accuracy;
+        }
+      });
+    }
+
     renderTable(ranked, myUid);
 
     const myEntry = ranked.find(r => r.uid === myUid);
@@ -67,6 +79,7 @@ async function loadRanking() {
     console.log("myPosRes:", myPosRes.status, myPosRes.reason);
 
     const ranking = rankingRes.status === "fulfilled" ? rankingRes.value : [];
+    window._apiRankingData = ranking;
     const myPos = myPosRes.status === "fulfilled" ? myPosRes.value : null;
 
     console.log("myPos:", myPos);
